@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebXR AR Example</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@webxr-input-profiles/motion-controllers@0.8.0/dist/motion-controllers.module.js"></script>
+</head>
+<body>
+  <button id="start-ar">Start AR</button>
+  <script>
+    let scene, camera, renderer;
+    let controller;
+
+    // WebXR対応か確認
+    if (navigator.xr) {
+      document.getElementById('start-ar').addEventListener('click', () => {
+        navigator.xr.requestSession('immersive-ar', {
+          requiredFeatures: ['hit-test']
+        }).then(onSessionStarted);
+      });
+    } else {
+      console.error('WebXR not supported');
+    }
+
+    // セッション開始時の処理
+    function onSessionStarted(session) {
+      renderer = new THREE.WebGLRenderer({ alpha: true });
+      renderer.xr.enabled = true;
+      document.body.appendChild(renderer.domElement);
+      renderer.xr.setSession(session);
+
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+      // 3Dオブジェクトを追加
+      const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+      const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+      const cube = new THREE.Mesh(geometry, material);
+      scene.add(cube);
+
+      const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+      scene.add(light);
+
+      // Hit-testに対応するためのHit-testソースを取得
+      session.requestReferenceSpace('local').then((refSpace) => {
+        session.requestHitTestSource({ space: refSpace }).then((hitTestSource) => {
+          renderer.setAnimationLoop(() => {
+            renderer.render(scene, camera);
+          });
+        });
+      });
+    }
+  </script>
+</body>
+</html>
